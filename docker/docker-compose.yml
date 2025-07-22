@@ -1,0 +1,51 @@
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: django_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-djangodb}
+      POSTGRES_USER: ${DB_USER:-django}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-django}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-django} -d ${DB_NAME:-djangodb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - django_network
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: django_app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ../myproject:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=${DEBUG:-1}
+      - DB_NAME=${DB_NAME:-djangodb}
+      - DB_USER=${DB_USER:-django}
+      - DB_PASSWORD=${DB_PASSWORD:-django}
+      - DB_HOST=database
+      - DB_PORT=5432
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - django_network
+
+volumes:
+  postgres_data:
+
+networks:
+  django_network:
+    driver: bridge

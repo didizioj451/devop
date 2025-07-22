@@ -1,0 +1,134 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run migrations
+      env:
+        DB_NAME: test_db
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DJANGO_SETTINGS_MODULE: myproject.settings.base
+      run: |
+        cd myproject
+        python manage.py migrate
+        
+    - name: Run tests
+      env:
+        DB_NAME: test_db
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DJANGO_SETTINGS_MODULE: myproject.settings.base
+      run: |
+        cd myproject
+        python manage.py test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: |
+        docker build -f docker/Dockerfile -t django-devops:latest .
+        
+    - name: Save Docker image
+      run: |
+        docker save django-devops:latest | gzip > django-devops.tar.gz
+        
+    - name: Upload Docker image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: django-devops.tar.gz
+
+  deploy-staging:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.votre-domaine.com
+      
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+        
+    - name: Load Docker image
+      run: |
+        gunzip -c django-devops.tar.gz | docker load
+        
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Déploiement sur l'environnement de staging"
+        # Ici vous pouvez ajouter vos commandes de déploiement
+
+  deploy-production:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://votre-domaine.com
+      
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+        
+    - name: Load Docker image
+      run: |
+        gunzip -c django-devops.tar.gz | docker load
+        
+    - name: Deploy to production
+      run: |
+        echo "🚀 Déploiement en production"
+        # Commandes de déploiement production
