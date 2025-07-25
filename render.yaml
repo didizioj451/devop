@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: django-devops-demo
+    env: python
+    plan: free
+    buildCommand: |
+      cd myproject
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: cd myproject && gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DJANGO_SETTINGS_MODULE
+        value: myproject.settings.production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: django-db
+          property: connectionString
+
+  - type: database
+    name: django-db
+    databaseName: djangodb
+    user: django
+    plan: free

@@ -1,0 +1,35 @@
+name: Cost Protection
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Toutes les 6 heures
+  workflow_dispatch: # Permet de lancer manuellement
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Cleanup old preview deployments
+      run: |
+        # Suppression des environnements de plus de 7 jours
+        echo "🧹 Nettoyage des environnements anciens..."
+        # Logique de suppression selon votre plateforme
+        
+    - name: Check GitHub Actions usage
+      run: |
+        # Vérification de l'usage des minutes
+        USAGE=$(gh api user --jq '.plan.private_repos')
+        if [ "$USAGE" -gt 1800 ]; then
+          echo "⚠️ Attention: Usage élevé des minutes GitHub Actions"
+          # Envoyer une notification ou désactiver certains workflows
+        fi
+        
+    - name: Monitor Railway usage
+      run: |
+        echo "📊 Vérification usage Railway..."
+        # Ici vous pouvez ajouter des appels API Railway si disponibles
+        
+    - name: Auto-sleep inactive apps
+      run: |
+        echo "😴 Mise en veille des apps inactives..."
+        # Logique pour mettre en veille les apps non utilisées

@@ -10,17 +10,35 @@ services:
       SECRET_KEY: ${{ RAILWAY_SECRET_KEY }}
       DEBUG: false
       ALLOWED_HOSTS: ${{ RAILWAY_PUBLIC_DOMAIN }}
+      # Optimisations pour plan gratuit
+      WEB_CONCURRENCY: 2
+      MAX_REQUESTS: 1000
+      MAX_REQUESTS_JITTER: 100
     build:
       command: |
         cd myproject
+        pip install --no-cache-dir -r requirements.txt
         python manage.py collectstatic --noinput
         python manage.py migrate
     run:
-      command: cd myproject && gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT
+      command: cd myproject && gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --max-requests 1000
+    healthcheck:
+      path: /health/
+      interval: 30s
+      timeout: 10s
     
   database:
-    image: postgres:15
+    image: postgres:15-alpine
     env:
       POSTGRES_DB: djangodb
       POSTGRES_USER: django
       POSTGRES_PASSWORD: ${{ RAILWAY_DATABASE_PASSWORD }}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Limites pour plan gratuit
+    resources:
+      memory: 256Mi
+      cpu: 0.25
+
+volumes:
+  postgres_data:

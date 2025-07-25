@@ -11,33 +11,12 @@
         "ms-python.django",
         "ms-azuretools.vscode-docker",
         "ms-vscode.vscode-json",
-        "redhat.vscode-yaml",
-        "GitHub.copilot"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "python.linting.enabled": true,
-        "python.linting.pylintEnabled": true
-      }
+        "redhat.vscode-yaml"
+      ]
     }
   },
   
   "forwardPorts": [8000, 5432],
-  "portsAttributes": {
-    "8000": {
-      "label": "Django App",
-      "onAutoForward": "notify"
-    },
-    "5432": {
-      "label": "PostgreSQL"
-    }
-  },
-  
   "postCreateCommand": "python manage.py migrate && python manage.py collectstatic --noinput",
-  "remoteUser": "root",
-  
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
-  }
+  "remoteUser": "root"
 }
